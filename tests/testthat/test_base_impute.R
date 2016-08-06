@@ -34,13 +34,11 @@ test_that("Impute data frame", {
   expect_equal(imputed$x[6], 0.5)
   expect_equal(imputed$x[6], 0.5)
   expect_true(imputed$y[6] >= 0 && imputed$y[6] <= 5)
-  
+
   # learner
-  # we specifically want to check functionality with a learner that does not 
-  # support NAs. We don't check the data again when we create the task to train and the 
-  # observations we want to impute have to be removed in training.
+  # use learner that does not support NAs, we had a bug here in #1035
   lrn = makeLearner("classif.fnn")
-  expect_false(hasLearnerProperties(lrn, "missings")) 
+  expect_false(hasLearnerProperties(lrn, "missings"))
   data2 = data[1:5, 1:3]
   data2[1,1] = NA
   imputed = impute(data2, cols = list(f = imputeLearner(lrn)))$data
