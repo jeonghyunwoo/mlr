@@ -74,10 +74,12 @@
 #'   control = ctrl, measures = list(mmce, setAggregation(mmce, train.mean)))
 #' print(res)
 #' print(head(as.data.frame(res$opt.path)))
-#' }
+#' }
 #' @seealso \code{\link{generateHyperParsEffectData}}
 tuneParams = function(learner, task, resampling, measures, par.set, control, show.info = getMlrOption("show.info")) {
   learner = checkLearner(learner)
+  if (ParamHelpers::hasExpression(learner$par.set) || any(vlapply(learner$par.vals, is.expression)))
+    learner = evaluateLearner(lrn = learner, task = task)
   assertClass(task, classes = "Task")
   measures = checkMeasures(measures, learner)
   assertClass(par.set, classes = "ParamSet")
