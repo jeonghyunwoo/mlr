@@ -20,7 +20,11 @@ print.SupervisedTask = function(x, print.target = TRUE, print.weights = TRUE, ..
   catf("Type: %s", td$type)
   if (print.target)
     catf("Target: %s", collapse(td$target))
-  catf("Observations: %i", td$size)
+    catf("Observations: %i", td$size)
+  if (any(class(x) == "ForecastTask")){
+    catf("From: %s",td$dates[1])
+    catf("To:   %s", td$dates[2])
+  }
   catf("Features:")
   catf(printToChar(td$n.feat, collapse = "\n"))
   catf("Missings: %s", td$has.missings)

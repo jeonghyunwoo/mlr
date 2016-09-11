@@ -36,6 +36,9 @@ makePrediction = function(task.desc, row.names, id, truth, predict.type, predict
   UseMethod("makePrediction")
 }
 
+
+
+
 #' @export
 makePrediction.TaskDescRegr = function(task.desc, row.names, id, truth, predict.type, predict.threshold = NULL, y, time, error = NA_character_) {
   data = namedList(c("id", "truth", "response", "se"))
@@ -185,6 +188,29 @@ makePrediction.TaskDescCostSens = function(task.desc, row.names, id, truth, pred
     task.desc = task.desc,
     time = time,
     error = error
+  )
+}
+
+#' @export
+makePrediction.TaskDescForecastRegr = function(task.desc, row.names, id, truth, predict.type, predict.threshold = NULL, y, time, error = NA_character_) {
+  data = namedList(c("id", "truth", "response", "se"))
+  data$id = id
+  data$truth = truth
+  if (predict.type == "response") {
+    data$response = y
+  } else {
+    y = as.data.frame(y)
+    data$response = y[, 1L, drop = FALSE]
+    data$se = y[, 2L:I(ncol(y)), drop = FALSE]
+  }
+
+  makeS3Obj(c("PredictionRegr", "Prediction"),
+            predict.type = predict.type,
+            data = setRowNames(as.data.frame(filterNull(data), row.names = NULL), row.names),
+            threshold = NA_real_,
+            task.desc = task.desc,
+            time = time,
+            error = error
   )
 }
 

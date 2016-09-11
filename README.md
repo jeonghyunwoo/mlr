@@ -1,180 +1,279 @@
-![mlr](http://mlr-org.github.io/mlr-tutorial/img/mlrLogo_blue_141x64.png): Machine Learning in R
+
+![mlr](https://mlr-org.github.io/mlr-tutorial/images/mlrLogo_blue_141x64.png): Machine Learning in R
+
 ==========================
-[![Build Status](https://travis-ci.org/mlr-org/mlr.svg?branch=master)](https://travis-ci.org/mlr-org/mlr)
-[![Build Status tutorial](https://travis-ci.org/mlr-org/mlr-tutorial.svg?branch=gh-pages)](https://travis-ci.org/mlr-org/mlr-tutorial)
-[![CRAN Status Badge](http://www.r-pkg.org/badges/version/mlr)](https://cran.r-project.org/web/packages/mlr)
-[![CRAN Downloads](http://cranlogs.r-pkg.org/badges/mlr)](https://cran.rstudio.com/web/packages/mlr/index.html)
-[![StackOverflow](https://img.shields.io/badge/stackoverflow-mlr-blue.svg)](https://stackoverflow.com/questions/tagged/mlr)
 
-* [Offical CRAN release site](http://cran.r-project.org/web/packages/mlr/)
-* Detailed Tutorial:
-    * [mlr release](https://mlr-org.github.io/mlr-tutorial/release/html/) ([online](https://mlr-org.github.io/mlr-tutorial/release/html/), [download for offline usage](https://mlr-org.github.io/mlr-tutorial/release/mlr_tutorial.zip))
-    * [mlr devel](https://mlr-org.github.io/mlr-tutorial/devel/html/) ([online](https://mlr-org.github.io/mlr-tutorial/devel/html/), [download for offline usage](https://mlr-org.github.io/mlr-tutorial/devel/mlr_tutorial.zip))
-* [R Documentation in HTML](http://rpackages.ianhowson.com/cran/mlr/)
-* Internal [Jenkins test infrastructure](https://hagakure.cs.ubc.ca:2893/view/mlr/) - only for developers.
-* Install the development version
+Updates to MLR for Forecasting: September 19th, 2016
+==========================
 
-    ```splus
-    devtools::install_github("mlr-org/mlr")
-    ```
-* [Further installation instructions](https://github.com/rdatsci/PackagesInfo/wiki/Installation-Information)
-* [Ask a question about mlr on Stackoverflow](https://stackoverflow.com/questions/tagged/mlr)
-* [We are on Slack](https://mlr-org.slack.com/)
-* [We have a blog on mlr](https://mlr-org.github.io/)
-* We are on rank 21 of the most starred R packages on Github, as reported by [metacran](http://www.r-pkg.org/starred).
-* **If you like the package, please "star" it on Github.**
+The goal of this project is to develop:
 
-mlr - How to Cite and Citing Publications
-=========================================
+1. Forecasting time series models in the MLR framework
+2. Measures for evaluating forecast models
+3. Resampling methods that work for time based data
+4. Preprocessing lag and difference features
 
-If you use the package, please cite it. To get a citation, type in R:
-
-`citation("mlr")`
-
-Bernd Bischl, Michel Lang, Lars Kotthoff, Julia Schiffner, Jakob Richter, Zachary Jones and Giuseppe Casalicchio (2016). mlr: Machine Learning in R. R package version 2.9. https://CRAN.R-project.org/package=mlr
-
-A BibTeX entry for LaTeX users is
-
-```
-@Manual{
-title = {mlr: Machine Learning in R},
-author = {Bernd Bischl and Michel Lang and Lars Kotthoff and Julia Schiffner and Jakob Richter and Zachary Jones and Giuseppe Casalicchio},
-year = {2016},
-note = {R package version 2.9},
-url = {https://CRAN.R-project.org/package=mlr},
-}
+As a basic introduction we will simulate data from an arima process and place it into an xts object.
+```{r}
+library(xts)
+library(lubridate)
+set.seed(1234)
+dat = arima.sim(model = list(ar = c(.5,.2), ma = c(.4), order = c(2,0,1)), n = 5000)
+times = Sys.time() + days(1:5000)
+dat = xts(dat,order.by = times)
+colnames(dat) = c("arma_test")
 ```
 
-Some parts of the package were created as part of other publications.
-If you use these parts, please cite the relevant work appropriately:
+Now, just like with `makeRegrTask()` we will use `makeForecastRegrTask()` to create a task for forecasting. The main difference between `Forecast` tasks and the normal tasks is that our data must be an xts object.
+```{r}
+Timeregr.task = makeForecastRegrTask(id = "test", data = dat, target = "arma_test")
+Timeregr.task
+# Supervised task: test
+# Type: regr
+# Target: arma_test
+# Observations: 5000
+# Features:
+# numerics  factors  ordered 
+#        1        0        0 
+# Missings: FALSE
+# Has weights: FALSE
+# Has blocking: FALSE
+```
 
+Notice that we still inheret a Supervised task and our type is a regression. Now we create an arima model from the package `forecast` using `makeLearner()` by calling the learner class `fcregr.Arima`. An important (and debate-ably placed) parameter is the `n.ahead` parameter, which is used to specify that we are predicting 10 steps ahead.
 
-**Tuning with Iterated F-Racing**
+```{r}
+arm = makeLearner("fcregr.Arima", order = c(2,0,1), n.ahead = 10L, include.mean = FALSE)
+arm
+# Learner fcregr.Arima from package forecast
+# Type: regr
+# Name: AutoRegressive Integrated Moving Average; Short name: Arima
+# Class: fcregr.Arima
+# Properties: numerics,ts
+# Predict-Type: response
+# Hyperparameters: order=2,0,1,n.ahead=10,include.mean=FALSE
+```
 
-Lang, Michel, Helena Kotthaus, Peter Marwedel, Claus Weihs, Jörg Rahnenführer, and Bernd Bischl. "Automatic model selection for high-dimensional survival analysis." Journal of Statistical Computation and Simulation 85, no. 1 (2015): 62-76.
+We now have two new cross validation resampling strategies, `GrowingCV` and `FixedCV`. They are both rolling forecasting origin techniques established in [Hyndman and Athanasopoulos (2013)](https://www.otexts.org/fpp/2/5) and first made popular in R by the `caret` package's `createTimeSlices()` function. We specify:
 
-**Class Imbalance Correction Algorithms**
+1. horizon - the number of periods to forecast
+2. initialWindow - our left-most starting time slice (needs to be changed to initial.window for standards)
+3. size - The number of rows in our time series
+4. skip - An optional parameter that allow to skip every n'th window.
+```{r}
+resamp_desc = makeResampleDesc("GrowingCV", horizon = 10L,
+                               initialWindow = 1000L,
+                               size = nrow(dat), skip = 50L)
+resamp_desc
+# Window description:
+#  growing with 79 iterations:
+#  1000 observations in initial window and 10 horizon.
+# Predict: test
+# Stratification: FALSE
+```
 
-Bischl, Bernd, Tobias Kühn, and Gero Szepannek. "On Class Imbalance Correction for Classification Algorithms in Credit Scoring." In Operations Research Proceedings 2014, pp. 37-43. Springer International Publishing, 2016.
+The wonderful graphic posted below comes from the `caret` website and gives an intuitive idea of the sliding windows for both the growth and fixed options.
 
+![Build Status](http://topepo.github.io/caret/main_files/figure-html/Split_time-1.png)
 
-**A list of publications that cite mlr can be found in the wiki [here](https://github.com/mlr-org/mlr/wiki/Publications-that-use-mlr).**
+Taking our model, task, resampling strategy, and an additonal parameter for scoring our model, we use `resample()` to train our model.
+```{r}
+resamp_arm = resample(arm,Timeregr.task, resamp_desc, measures = mase)
+resamp_arm
+# Resample Result
+# Task: test
+# Learner: fcregr.Arima
+# Aggr perf: mase.test.mean=0.00332
+# Runtime: 4.164
+```
 
+The forecasting features fully integrate into mlr, allowing us to also make a parameter set to tune over.
+```{r}
+par_set = makeParamSet(
+  makeIntegerVectorParam(id = "order",
+                         len = 3L,
+                         lower = c(0L,0L,0L),
+                         upper = c(3L,1L,1L),
+                         tunable = TRUE),
+  makeIntegerVectorParam(id = "seasonal",
+                         len = 3L,
+                         lower = c(0L,0L,0L),
+                         upper = c(1L,1L,1L),
+                         tunable = TRUE),
+  makeLogicalParam(id = "include.mean",
+                   default = FALSE,
+                   tunable = TRUE),
+  makeNumericParam(id = "n.ahead",
+                   default = 10,
+                   tunable = FALSE,
+                   lower = 10,
+                   upper = 10)
+)
 
-Introduction
-============
+#Specify tune by grid estimation
+ctrl = makeTuneControlGrid()
 
-R does not define a standardized interface for all its machine learning
-algorithms. Therefore, for any non-trivial experiments, you need to write
-lengthy, tedious and error-prone wrappers to call the different algorithms and
-unify their respective output. Additionally you need to implement infrastructure
-to resample your models, optimize hyperparameters, select features, cope with
-pre- and post-processing of data and compare models in a statistically
-meaningful way. As this becomes computationally expensive, you might want to
-parallelize your experiments as well. This often forces users to make crummy
-trade-offs in their experiments due to time constraints or lacking expert
-programming skills. **mlr** provides this infrastructure so that you can focus
-on your experiments! The framework provides supervised methods like
-classification, regression and survival analysis along with their corresponding
-evaluation and optimization methods, as well as unsupervised methods like clustering. It
-is written in a way that you can extend it yourself or deviate from the
-implemented convenience methods and construct your own complex experiments or
-algorithms.
+#
+res = tuneParams("fcregr.Arima", task = Timeregr.task, resampling = resamp_desc, par.set = par_set,
+                 control = ctrl, measures = mase)
+```
 
-Features
-========
+It is interesting to note that Arima does not select our sample data's original underlying process and instead selects a (0,0,0) model with a (0,1,0) seasonal structure.
+```{r}
+res
 
-* Clear S3 interface to R classification, regression, clustering and survival analysis methods
-* Possibility to fit, predict, evaluate and resample models
-* Easy extension mechanism through S3 inheritance
-* Abstract description of learners and tasks by properties
-* Parameter system for learners to encode data types and constraints
-* Many convenience methods and generic building blocks for your
-  machine learning experiments
-* Resampling methods like bootstrapping, cross-validation and subsampling
-* Extensive visualizations for e.g. ROC curves, predictions and partial
-  predictions
-* Benchmarking of learners for multiple data sets
-* Easy hyperparameter tuning using different optimization strategies, including
-  potent configurators like iterated F-racing (irace) or sequential model-based
-  optimization
-* Variable selection with filters and wrappers
-* Nested resampling of models with tuning and feature selection
-* Cost-sensitive learning, threshold tuning and imbalance correction
-* Wrapper mechanism to extend learner functionality in complex and custom ways
-* Combine different processing steps to a complex data mining chain that can be jointly optimized
-* OpenML connector for the Open Machine Learning server
-* Extension points to integrate your own stuff
-* Parallelization is built-in
-* Unit-testing
-* Detailed tutorial
+# Tune result:
+# Op. pars: order=0,0,0; seasonal=0,1,0; include.mean=FALSE; n.ahead=10
+# mase.test.mean=0.00294
+```
 
+This may be due to how low our measure is, as looking up the original models process does give a very good score.
+```{r}
+as.data.frame(res$opt.path)[139,]
+#     order1 order2 order3 seasonal1 seasonal2 seasonal3 include.mean n.ahead mase.test.mean dob eol error.message
+# 139      2      0      1         0         0         0        FALSE      10    0.003315028 139  NA          <NA>
+    exec.time
+139     3.724
+```
 
+We can now use our learned model with tuning to pass over the entire data set and give our final prediction. However there is currently a bug in the predict function.
+```{r}
+lrn = setHyperPars(makeLearner("fcregr.Arima"), par.vals = res$x)
+m = train(lrn, Timeregr.task)
 
-News
-====
-Most NEWS regarding extensions and changes of the packages can be accessed here for the
-[release](http://cran.r-project.org/web/packages/mlr/NEWS) and here for the
-[devel](https://github.com/mlr-org/mlr/blob/master/NEWS.md) version on Github.
+predict(m, task = Timeregr.task)
+ 
+#  Error in (function (..., row.names = NULL, check.rows = FALSE, check.names = TRUE,  : 
+#   arguments imply differing number of rows: 5000, 10 
+```
+This error is caused by missing newdata. We are only generating 10 new observations (forecasts), but the underlying code believes we are running our model over our training data, returning 5000 observations. This error can be corrected by adding a subset of size 10 to our call, though the 'truth' responses are arbitrary and do not correspond to the next 10.
 
-* 2016-08-24:
-  * We have a (still smallish) [blog](https://mlr-org.github.io/) on things related to mlr.
-* 2016-08-06:
-  * We are hosting the first mlr workshop! It is in Palermo, and more like a sprint, as 11 core developers meet to get stuff done. Thanks to Giuseppe for organizing this! We are thinking about hosting the 2017 one in Munich and possibly opening this up more for the public. If you are interested in potentially joining, email Bernd.
-* 2016-08-06:
-  * mlr 2.9 released to CRAN. This is a pretty large release containing (among other things)
-    * Many new measures and many new learners (also h2o and its deeplearning net)
-    * More sophisticated algorithms for multilabel learning that can exploit label correlation.
-    * The first batch of functions from Mason Gallo's very cool GSOC project for hyperparameter tuning visualization.
-* 2016-02-13:
-  * mlr 2.8 released to CRAN. Mainly a release with bug fix release and many minor improvements, also regarding the new ggplot2 release.
-* 2015-11-26:
-  * mlr 2.6 released to CRAN. A mini update, which was required as ViperCharts seems to be offline and we needed to switch off its test for CRAN. Contains also some fixes and new learners.
-* 2015-11-21:
-  * mlr 2.5 released to CRAN. In addition to other things and many cleanups and fixes, it features: a) Quite a few new learners b) plots and statistical tests to analyze benchmark results (e.g. Demsar) c) partial depedency plots for all models (which I like quite a lot) d) first support for multilabel classification.
-* 2015-06-27:
-  * Zach M Jones is doing great work in his current GSOC project to improve **mlr's visualization system** to explore models and data. Some of this is already in 2.4, much more is to come in upcoming 2.5. Here are some general remarks.
-    * We try to use ggplot2 as a standard for static graphics you can use in papers and knitr docs. These plotting functions return ggplot2 objects you can later change with the usual "+"-operator.
-    * We often provide ggvis versions of these plots, which are more interactive.
-    * For each plot, there is a well-defined data layer / container object that contains the data necessary for the plot. This object is generated first and passed to the function that does the actual plotting. Pro: This enforces good design on our side. And if you dislike something in our plots, you can implement your own by using the container object, instead of doing everything from scratch. Con: You need to call 2 functions for a plot. We think the "Pros" are worth it.
-  * mlr is becoming a **Github org**, because we are growing larger and need more structure. The tutorial is already on that org (and hopefully you don't even notice that), and we will migrate the whole project soon (hopefully also without many people noticing much).
-  * The **tutorial is now continuously being built and checked with Travis CI**. It is also **versioned**, so we have subdirs 2.4, 2.5, and symlinks "devel" and "release". Before, we only had one version, and people got confused if we already explained stuff for the devel version, which was not on CRAN yet. (Julia and Lars put lots of work into all of this.)
-* 2015-06-13:
-  * mlr 2.4 released to CRAN.
-* 2015-04-30:
-  * I (Bernd) was pretty busy as I had to change cities and workplaces. I now head the Computational Statistics Group at LMU Munich. More importantly, this resulted in me not taking care of requests and issues as much as I wanted during the last weeks. Apologies and hopefully I have more time from now on.
-  * mlr got not one, but three project slots in Google Summer of Code 2015. Many thanks to the R Foundation, Google and all students who applied with exciting proposals. Best of luck to Tong, Zach and Pascal, who will work on SVM ensembles, mlr's visualization system and better hyperparameter / tuning options.
-* 2015-02-17:
-  * **We have been informed that our tutorial "Applied Machine Learning and Efficient Model Selection with mlr" has been accepted for [useR 2015](http://user2015.math.aau.dk/) in Aarlborg. Hoping to meet all of you there in June!**
-* 2015-02-04:
-  * mlr 2.3 released to CRAN.
-* 2014-10-28:
-  * mlr 2.2 released to CRAN.
-  * The popular Java tool WEKA uses mlr in its [RPlugin](http://weka.sourceforge.net/packageMetaData/RPlugin/index.html).
-* 2014-10-18:
-  * We have improved the tutorial A LOT. It is also based on mkdocs and knitr now. Still fixing minor things and extending a bit. Take a look yourself.
-  * We might refactor the internal handling and OO structure of tasks a bit, so even more natural indexing and operations are possible. Michel is currently working on this in a branch.
-  * I will talk about mlr in connection with the [OpenML](http://www.openml.org) project next week. If you don't know this, take a look, a very cool initiative by Joaquin Vanschoren. We are developing a connector to R in general which also covers mlr [here](https://github.com/openml/r).
+```{r}
+predict(m, task = Timeregr.task, subset = 1:10)
+# Prediction: 10 observations
+# predict.type: response
+# threshold: 
+# time: 0.00
+#   id      truth response
+# 1  1 -1.0859353        0
+# 2  2 -1.7280429        0
+# 3  3 -1.5058091        0
+# 4  4 -2.0405171        0
+# 5  5 -0.5935022        0
+# 6  6 -0.7395286        0
+# ... (10 rows, 3 cols)
+```
 
+We can get back the raw estimates with no truth by making newdata a data frame of `NA`'s, though this is more likely to be a bug as it is a solution.
+```{r}
+predict(m, newdata = data.frame(rep(NA, 10)))
+# Prediction: 10 observations
+# predict.type: response
+# threshold: 
+# time: 0.00
+#   response
+# 1        0
+# 2        0
+# 3        0
+# 4        0
+# 5        0
+# 6        0
+# ... (10 rows, 1 cols)
+```
 
-Talks and Videos
-================
-* [Video](https://www.youtube.com/watch?v=rzjkT1uLNi4) of Bernd's "mlr + OpenML" talk at OpenML workshop 2014
-* [Video](https://www.youtube.com/watch?v=d1PnFiN6nOQ) of Zach's International Methods Colloquim talk 2015 "Data Mining as Exploratory Data Analysis"
+Updates to MLR for Forecasting: September 22nd, 2016
+==========================
 
+Issues with frequency have arisen when working with the `forecast` package due to frequency. While `xts` is robust, it assumes all dates are continuous, unique, and have a frequency of one. While this gives a robust structure, many of the methods in forecast are dependent on the datas frequency. To allow both packages to mesh we include a new parameter in `makeForecastRegrTask()` for frequency.
 
-Get in Touch
-============
+```{r}
+Timeregr.task = makeForecastRegrTask(id = "test", data = dat,
+                                     target = "arma_test", frequency = 1L)
+# Task: test
+# Type: regr
+# Observations: 2000
+# Dates:
+#  Start: 2016-09-23 23:16:50 
+#  End: 2022-03-15 23:16:50
+# Frequency: 1
+# Features:
+# numerics  factors  ordered 
+#        1        0        0 
+# Missings: FALSE
+# Has weights: FALSE
+# Has blocking: FALSE
+```
+A new print statement for objects of class `TimeTask` was created for including dates and frequency.
 
-Please use the issue tracker for problems, questions and feature requests.
-Don't email in most cases, as we forget these mails.
+A new function to create arbitrary lags and differences `createLagDiffFeatures()` has also been added. Notice that we get a weird doubel date thing, but our column names look nice
 
-We also do not hate beginners and it is perfectly valid to mark an issue as "Question".
+```{r}
+Timeregr.task.lag = createLagDiffFeatures(Timeregr.task,lags = 2L:4L,difference = 0L)
+tail(Timeregr.task.lag$env$data)
+```
+<table border=1>
+<tr> <th>  </th> <th> dates </th> <th> arma_test </th> <th> arma_test_lag2_diff0 </th> <th> arma_test_lag3_diff0 </th> <th> arma_test_lag4_diff0 </th>  </tr>
+  <tr> <td align="right"> 2022-03-10 23:49:34 </td> <td align="right"> 1646974174.52 </td> <td align="right"> -0.93 </td> <td align="right"> -0.58 </td> <td align="right"> -2.31 </td> <td align="right"> -0.98 </td> </tr>
+  <tr> <td align="right"> 2022-03-11 23:49:34 </td> <td align="right"> 1647060574.52 </td> <td align="right"> -1.08 </td> <td align="right"> 0.28 </td> <td align="right"> -0.58 </td> <td align="right"> -2.31 </td> </tr>
+  <tr> <td align="right"> 2022-03-12 23:49:34 </td> <td align="right"> 1647146974.52 </td> <td align="right"> -0.56 </td> <td align="right"> -0.93 </td> <td align="right"> 0.28 </td> <td align="right"> -0.58 </td> </tr>
+  <tr> <td align="right"> 2022-03-13 23:49:34 </td> <td align="right"> 1647229774.52 </td> <td align="right"> -0.49 </td> <td align="right"> -1.08 </td> <td align="right"> -0.93 </td> <td align="right"> 0.28 </td> </tr>
+  <tr> <td align="right"> 2022-03-14 23:49:34 </td> <td align="right"> 1647316174.52 </td> <td align="right"> -0.48 </td> <td align="right"> -0.56 </td> <td align="right"> -1.08 </td> <td align="right"> -0.93 </td> </tr>
+  <tr> <td align="right"> 2022-03-15 23:49:34 </td> <td align="right"> 1647402574.52 </td> <td align="right"> 1.02 </td> <td align="right"> -0.49 </td> <td align="right"> -0.56 </td> <td align="right"> -1.08 </td> </tr>
+   </table>
+   
+A new preprocessing wrapper `makePreprocWrapperLambert()` has been added. This function uses the
+`LambertW` package's `Guassianize()` function to help remove skewness and kurtosis from the data.
 
-Please don't forget that all of us work in academia and put a lot of work into this project, simply because we like it, not because we are specifically paid for it.
+```{r}
+lrn = makePreprocWrapperLambert("classif.lda", type = "h")
+print(lrn)
+train(lrn, iris.task)
+```
 
-We also welcome pull requests or new developers.
-Just make sure that you have a glance at our [**mlr** coding guidelines](https://github.com/mlr-org/mlr/wiki/mlr-Coding-Guidelines) before.
+The lambert W transform is a bijective function, but the current preprocessing wrapper does not allow us to invert our predictions back to the actual values when we make new predictions. This would be helpful if we wanted to use LambertW on our target, then get back answers that coinside with our real values instead of the transformed values.
 
-For everything else the maintainer Bernd Bischl can be reached here: bernd_bischl@gmx.net.
-He (=me) is sometimes busy, so please use the other channels for appropriate stuff first, so you get quicker responses ;-)
+Several new models have been included from forecast:
+
+1. Exponential smoothing state space model with Box-Cox transformation (bats)
+2. Exponential smoothing state space model with Box-Cox transformation, ARMA errors, Trend and Seasonal Fourier components (tbats)
+3. Exponential smoothing state space model (ets)
+4. Neural Network Autoregressive model (nnetar)
+
+The below code will run with the `Timeregr.task` we states above.
+```{r}
+batsMod = makeLearner("fcregr.bats", h = 10)
+batsMod
+m = train(batMod, Timeregr.task)
+predict(m, Timeregr.task, subset = 1:10)
+
+#fc.tbats
+tBatsMod = makeLearner("fcregr.tbats", h = 10)
+tBatsMod
+m = train(tBatsMod, Timeregr.task)
+predict(m, Timeregr.task, subset = 1:10)
+
+#fc.ets
+etsMod = makeLearner("fcregr.ets", h = 10)
+etsMod
+m = train(etsMod, Timeregr.task)
+predict(m, Timeregr.task, subset = 1:10)
+
+#fc.nnetar
+nnetarMod = makeLearner("fcregr.nnetar", h = 10)
+nnetarMod
+m = train(nnetarMod, Timeregr.task)
+predict(m, Timeregr.task, subset = 1:10)
+```
+
+And the big finish for this week... GARCH models!!!
+
+```{r}
+garchMod = makeLearner("fcregr.garch", model = "sGARCH",
+                       garchOrder = c(1,1), n.ahead = 10,
+                       armaOrder = c(2, 1))
+m = train(garchMod, Timeregr.task)
+predict(m, newdata = as.data.frame(rep(NA,10)))
+```
+
+So not bad, we need to look over how I pull out the garch models list parameters and I think everything will be okay.
+

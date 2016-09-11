@@ -132,6 +132,7 @@ makeTask = function(type, data, weights = NULL, blocking = NULL, fixup.data = "w
   )
 }
 
+#' @importFrom lubridate is.POSIXt
 checkTaskData = function(data, cols = names(data)) {
   fun = function(cn, x) {
     if (is.numeric(x)) {
@@ -142,6 +143,9 @@ checkTaskData = function(data, cols = names(data)) {
     } else if (is.factor(x)) {
       if (any(table(x) == 0L))
         stopf("Column '%s' contains empty factor levels.", cn)
+    } else if (is.POSIXt(x)){
+      if (any(duplicated(x)))
+        stopf("There are duplicate dates")
     } else {
       stopf("Unsupported feature type (%s) in column '%s'.", class(x)[1L], cn)
     }
@@ -164,3 +168,20 @@ print.Task = function(x, print.weights = TRUE, ...) {
     catf("Has weights: %s", td$has.weights)
   catf("Has blocking: %s", td$has.blocking)
 }
+
+#' @export
+print.TimeTask = function(x, print.weights = TRUE, ...) {
+  td = x$task.desc
+  catf("Task: %s", td$id)
+  catf("Type: %s", td$type)
+  catf("Observations: %i", td$size)
+  catf("Dates:\n Start: %s \n End: %s", td$dates[1], td$dates[2])
+  catf("Frequency: %i", td$frequency)
+  catf("Features:")
+  catf(printToChar(td$n.feat, collapse = "\n"))
+  catf("Missings: %s", td$has.missings)
+  if (print.weights)
+    catf("Has weights: %s", td$has.weights)
+  catf("Has blocking: %s", td$has.blocking)
+}
+

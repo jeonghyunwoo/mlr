@@ -51,6 +51,9 @@ predict.WrappedModel = function(object, task, newdata, subset, ...) {
     assertClass(task, classes = "Task")
     size = getTaskSize(task)
   } else {
+    ##FIXME: Better way to make into a data frame? This doesn't protect against a lot of things
+    if (xts::is.xts(newdata))
+      newdata = as.data.frame(newdata)
     assertDataFrame(newdata, min.rows = 1L)
     size = nrow(newdata)
   }
@@ -79,7 +82,9 @@ predict.WrappedModel = function(object, task, newdata, subset, ...) {
     truth = newdata[, t.col, drop = TRUE]
     if (is.list(truth))
       truth = data.frame(truth)
-    newdata = newdata[, -t.col, drop = FALSE]
+    #FIXME: Patchjob, need to find a way to identify that new data can be same as y.
+    if (!any(learner$package == "forecast"))
+      newdata = newdata[, -t.col, drop = FALSE]
   } else {
     truth = NULL
   }

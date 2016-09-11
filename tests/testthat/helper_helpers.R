@@ -61,11 +61,13 @@ testSimple = function(t.name, df, target, train.inds, old.predicts, parset = lis
     task = makeMultilabelTask(data = df, target = target)
   else
     stop("Should not happen!")
+  set.seed(getOption("mlr.debug.seed"))
   m = try(train(lrn, task, subset = inds))
 
   if (inherits(m, "FailureModel")){
     expect_is(old.predicts, "try-error")
   } else {
+    set.seed(getOption("mlr.debug.seed"))
     cp = predict(m, newdata = test)
     # Multilabel has a special data structure
     if (class(task)[1] == "MultilabelTask") {

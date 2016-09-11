@@ -38,3 +38,40 @@ instantiateResampleInstance.RepCVDesc = function(desc, size, task = NULL) {
   g = as.factor(rep(seq_len(desc$reps), each = folds))
   makeResampleInstanceInternal(desc, size, train.inds = train.inds, test.inds = test.inds, group = g)
 }
+
+instantiateResampleInstance.FixedCVDesc = function(desc, size, task = NULL) {
+  stops  = (seq(size))[desc$initialWindow:(size - desc$horizon)]
+  starts = stops - desc$initialWindow + 1
+  train.inds = mapply(seq, starts, stops, SIMPLIFY = FALSE)
+  test.inds  = mapply(seq, stops + 1, stops + desc$horizon, SIMPLIFY = FALSE)
+
+  thin = function(x, skip = 2) {
+    n = length(x)
+    x[seq(1, n, by = skip)]
+  }
+  skip = desc$skip
+  if(skip > 0) {
+    train.inds = thin(train.inds, skip = skip+1)
+    test.inds = thin(test.inds, skip = skip+1)
+  }
+
+  makeResampleInstanceInternal(desc, size, train.inds = train.inds, test.inds = test.inds )
+}
+
+instantiateResampleInstance.GrowingCVDesc = function(desc, size, task = NULL) {
+  stops  = (seq(size))[desc$initialWindow:(size - desc$horizon)]
+  starts = 1:length(stops)
+  train.inds = mapply(seq, starts, stops, SIMPLIFY = FALSE)
+  test.inds  = mapply(seq, stops + 1, stops + desc$horizon, SIMPLIFY = FALSE)
+  thin = function(x, skip = 2) {
+    n = length(x)
+    x[seq(1, n, by = skip)]
+  }
+  skip = desc$skip
+  if(skip > 0) {
+    train.inds = thin(train.inds, skip = skip+1)
+    test.inds = thin(test.inds, skip = skip+1)
+  }
+
+  makeResampleInstanceInternal(desc, size, train.inds = train.inds, test.inds = test.inds )
+}
