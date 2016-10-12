@@ -51,6 +51,8 @@ testSimple = function(t.name, df, target, train.inds, old.predicts, parset = lis
   # FIXME this heuristic will backfire eventually
   if (length(target) == 0)
     task = makeClusterTask(data = df)
+  else if (xts::is.xts(df))
+    task = makeForecastRegrTask(data = df, target = target)
   else if (is.numeric(df[, target]))
     task = makeRegrTask(data = df, target = target)
   else if (is.factor(df[, target]))
@@ -100,7 +102,7 @@ testProb = function(t.name, df, target, train.inds, old.probs, parset = list()) 
   inds = train.inds
   train = df[inds,]
   test = df[-inds,]
-  
+
   if(length(target) == 1) {
     task = makeClassifTask(data = df, target = target)
   } else {

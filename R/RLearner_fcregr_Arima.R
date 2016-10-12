@@ -19,7 +19,7 @@ makeRLearner.fcregr.Arima = function() {
       makeDiscreteLearnerParam(id = "method", values = c("CSS-ML", "ML", "CSS"),
                                default = "CSS-ML", tunable = FALSE),
       # Make prediction parameters
-      makeNumericLearnerParam(id = "n.ahead", lower = 1, upper = Inf,
+      makeNumericLearnerParam(id = "h", lower = 1, upper = Inf,
                        default = 1, when = "predict"),
       makeLogicalLearnerParam(id = "biasadj", default = FALSE, tunable = TRUE, when = "predict"),
       makeLogicalLearnerParam(id = "bootstrap", default = FALSE, tunable = FALSE, when = "predict"),

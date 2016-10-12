@@ -53,12 +53,7 @@ createLagDiffFeatures.xts = function(obj, lag = 0L, difference = 0L, difference.
                                      cols = NULL, target = character(0L),
                                      seasonal.lag = 0L, seasonal.difference = 0L,
                                      seasonal.difference.lag = 1L, frequency = 1L,
-<<<<<<< HEAD
-                                     na.pad = TRUE) {
-=======
                                      na.pad = TRUE, return.nonlag = FALSE) {
-
->>>>>>> e6c9930... Fixed Lambert W and created test for forecast
   work.cols = colnames(obj)
   if (!is.null(cols)) {
     assertSubset(cols, work.cols)
