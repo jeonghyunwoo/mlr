@@ -111,7 +111,7 @@ costsens.task = makeCostSensTask("costsens", data = costsens.feat, costs = costs
 ### forecasting
 set.seed(getOption("mlr.debug.seed"))
 fcregr.xts <- arima.sim(model = list(ar = c(.5,.2), ma = c(.4), order = c(2,0,1)), n = 300)
-times <- (Sys.time()+3) + lubridate::days(1:300)
+times <- (as.POSIXlt("1992-01-14")) + lubridate::days(1:300)
 fcregr.xts <- xts::xts(fcregr.xts,order.by = times, frequency = 1L)
 colnames(fcregr.xts) = "test_data"
 fcregr.target = "test_data"
