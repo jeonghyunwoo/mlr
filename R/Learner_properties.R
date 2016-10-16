@@ -69,7 +69,7 @@ getSupportedLearnerProperties = function(type = NA_character_) {
     cluster    = c("numerics", "factors", "ordered", "missings", "weights", "prob"),
     surv       = c("numerics", "factors", "ordered", "missings", "weights", "prob", "lcens", "rcens", "icens", "featimp"),
     costsens   = c("numerics", "factors", "ordered", "missings", "weights", "prob", "twoclass", "multiclass"),
-    fcregr     = c("numerics", "factors", "ordered", "missings", "weights", "se", "featimp", "ts")
+    fcregr     = c("numerics", "factors", "ordered", "missings", "weights", "quantile", "featimp", "ts")
   )
   if (is.na(type))
     unique(unlist(p))

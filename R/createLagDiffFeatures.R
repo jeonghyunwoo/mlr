@@ -32,7 +32,7 @@ createLagDiffFeatures = function(obj, lag = 0L, difference = 0L, difference.lag 
                                  cols = NULL, target = character(0L),
                                  seasonal.lag = 0L, seasonal.difference = 0L,
                                  seasonal.difference.lag = 1L, frequency = 1L,
-                                 na.pad = TRUE, return.nonlag = FALSE) {
+                                 na.pad = TRUE, return.nonlag = TRUE) {
   ## FIXME: differences only accepts one value, should allow for more
   assertInteger(lag,lower = 0L, upper = 1000L)
   assertInteger(difference,lower = 0L, upper = 1000L, len = 1L)
@@ -53,7 +53,7 @@ createLagDiffFeatures.xts = function(obj, lag = 0L, difference = 0L, difference.
                                      cols = NULL, target = character(0L),
                                      seasonal.lag = 0L, seasonal.difference = 0L,
                                      seasonal.difference.lag = 1L, frequency = 1L,
-                                     na.pad = TRUE, return.nonlag = FALSE) {
+                                     na.pad = TRUE, return.nonlag = TRUE) {
   work.cols = colnames(obj)
   if (!is.null(cols)) {
     assertSubset(cols, work.cols)
@@ -108,10 +108,10 @@ createLagDiffFeatures.xts = function(obj, lag = 0L, difference = 0L, difference.
   }
 
   if (return.nonlag){
-    obj = obj[,setdiff(work.cols, cols), drop = FALSE]
+    obj = obj[,c(setdiff(work.cols, cols)), drop = FALSE]
     obj = cbind(obj, x)
   } else {
-    obj = x
+    obj = cbind(obj[,target],x)
   }
 
   if (na.pad == FALSE){
@@ -128,7 +128,7 @@ createLagDiffFeatures.TimeTask = function(obj, lag = 0L, difference = 0L, differ
                                           cols = NULL, target = character(0L),
                                           seasonal.lag = 0L, seasonal.difference = 0L,
                                           seasonal.difference.lag = 1L, frequency = 1L,
-                                          na.pad = TRUE, return.nonlag = FALSE) {
+                                          na.pad = TRUE, return.nonlag = TRUE) {
   target = getTaskTargetNames(obj)
   data = getTaskData(obj)
   frequency = obj$task.desc$frequency
@@ -142,7 +142,8 @@ createLagDiffFeatures.TimeTask = function(obj, lag = 0L, difference = 0L, differ
                                 seasonal.lag = seasonal.lag,
                                 seasonal.difference = seasonal.difference,
                                 seasonal.difference.lag = seasonal.difference.lag,
-                                frequency = frequency, na.pad = na.pad, return.nonlag = return.nonlag)
+                                frequency = frequency, na.pad = na.pad,
+                                return.nonlag = return.nonlag)
   data <- cbind(dates = index(data),as.data.frame(data))
   changeData(obj,data = data)
 

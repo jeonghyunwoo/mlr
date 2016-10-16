@@ -34,7 +34,8 @@ setPredictType.Learner = function(learner, predict.type) {
     regr = c("response", "se"),
     surv = c("response", "prob"),
     costsens = "response",
-    cluster = c("response", "prob")
+    cluster = c("response", "prob"),
+    fcregr = c("response", "quantile")
   ))
   if (predict.type == "prob" && !hasLearnerProperties(learner, "prob"))
     stopf("Trying to predict probs, but %s does not support that!", learner$id)

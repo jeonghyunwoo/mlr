@@ -3,21 +3,21 @@ context("fcregr_garch")
 test_that("fcregr_garch", {
 
   parset.list = list(
-    list(spec = ugarchspec()),
-    list(spec = ugarchspec(variance.model = list(model = "sGARCH", garchOrder = c(1, 1),
+    list(spec = rugarch::ugarchspec()),
+    list(spec = rugarch::ugarchspec(variance.model = list(model = "sGARCH", garchOrder = c(1, 1),
                                                  submodel = NULL, external.regressors = NULL, variance.targeting = FALSE),
                            mean.model = list(armaOrder = c(1, 1), include.mean = TRUE, archm = FALSE,
                                              archpow = 1, arfima = FALSE, external.regressors = NULL, archex = FALSE),
                            distribution.model = "norm", start.pars = list(), fixed.pars = list()),
          fit.control = list(stationarity = 1, fixed.se = 1, scale = 1, rec.init = 'all')),
-    list(spec = ugarchspec(variance.model = list(model = "fGARCH", garchOrder = c(1, 1),
+    list(spec = rugarch::ugarchspec(variance.model = list(model = "fGARCH", garchOrder = c(1, 1),
                                                  submodel = "GARCH", external.regressors = NULL, variance.targeting = TRUE),
                            mean.model = list(armaOrder = c(1, 1), include.mean = TRUE, archm = FALSE,
                                              archpow = 1, arfima = FALSE, external.regressors = NULL, archex = FALSE),
                            distribution.model = "norm", start.pars = list(), fixed.pars = list()),
          fit.control = list(stationarity = 1, fixed.se = 1, scale = 1, rec.init = 'all')),
-    list(spec = ugarchspec(), fit.control = list(stationarity = 1, fixed.se = 0, scale = 0, rec.init = .8)),
-    list( spec = ugarchspec())
+    list(spec = rugarch::ugarchspec(), fit.control = list(stationarity = 1, fixed.se = 0, scale = 0, rec.init = .8)),
+    list( spec = rugarch::ugarchspec())
   )
   old.predicts.list = list()
 

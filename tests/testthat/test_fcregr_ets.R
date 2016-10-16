@@ -10,7 +10,8 @@ test_that("fcregr_ets", {
     list( model = "AZZ", lambda = 1)
   )
   old.predicts.list = list()
-
+  #FIXME: Have to load the namespace?
+  requireNamespace("forecast")
   for (i in 1:length(parset.list)) {
     parset = parset.list[[i]]
     pars = list(y = ts(fcregr.train, start = 1, frequency = 1L))

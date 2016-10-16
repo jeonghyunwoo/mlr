@@ -197,16 +197,31 @@ makePrediction.TaskDescForecastRegr = function(task.desc, row.names, id, truth, 
   data$id = id
   data$truth = truth
   if (predict.type == "response") {
-    data$response = y
+    #FIXME: Very odd way to allow irace tuning through h
+    if (!is.null(truth)){
+      data$response = y[1:length(truth)]
+    } else {
+      data$response = y
+    }
+    data = filterNull(data)
   } else {
     y = as.data.frame(y)
-    data$response = y[, 1L, drop = FALSE]
-    data$se = y[, 2L:I(ncol(y)), drop = FALSE]
+    if (!is.null(truth)){
+      data$response = y[1:length(truth), 1L, drop = FALSE]
+      colnames(data$response) = NULL
+      data$se = y[1:length(truth), 2L:I(ncol(y)), drop = FALSE]
+    } else {
+      data$response = y[1:length(truth), 1L, drop = FALSE]
+      colnames(data$response) = NULL
+      data$se = y[1:length(truth), 2L:I(ncol(y)), drop = FALSE]
+
+    }
+    data = filterNull(data)
   }
 
-  makeS3Obj(c("PredictionRegr", "Prediction"),
+  makeS3Obj(c("PredictionForecastRegr", "Prediction"),
             predict.type = predict.type,
-            data = setRowNames(as.data.frame(filterNull(data), row.names = NULL), row.names),
+            data = setRowNames(as.data.frame(data, row.names = NULL), row.names),
             threshold = NA_real_,
             task.desc = task.desc,
             time = time,

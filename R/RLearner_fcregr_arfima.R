@@ -1,7 +1,7 @@
 #'@export
 #' @importFrom xts try.xts reclass
 makeRLearner.fcregr.arfima = function() {
-  makeRLearnerRegr(
+  makeRLearnerForecastRegr(
     cl = "fcregr.arfima",
     package = "forecast",
     par.set = makeParamSet(
@@ -30,13 +30,13 @@ makeRLearner.fcregr.arfima = function() {
       makeLogicalLearnerParam(id = "allowdrift", default = TRUE, tunable = FALSE),
       makeLogicalLearnerParam(id = "allowmean", default = TRUE, tunable = FALSE),
       makeLogicalLearnerParam(id = "biasadj", default = FALSE, tunable = TRUE),
-      makeNumericLearnerParam(id = "h", lower = 0, upper = Inf, default = 1, tunable = FALSE,
+      makeIntegerLearnerParam(id = "h", lower = 0, upper = Inf, default = 1, tunable = FALSE,
                               when = "predict"),
       makeLogicalLearnerParam(id = "bootstrap", default = FALSE, tunable = FALSE, when = "predict"),
       makeUntypedLearnerParam(id = "level", default = c(80,95), when = "predict"),
       makeIntegerLearnerParam(id = "npaths", default = 5000, when = "predict")
     ),
-    properties = c("numerics","ts","se"),
+    properties = c("numerics","ts","quantile"),
     name = "AutoRegressive Fractionally Integrated Moving Average",
     short.name = "arfima",
     note = ""
@@ -53,7 +53,7 @@ trainLearner.fcregr.arfima = function(.learner, .task, .subset, .weights = NULL,
 
 #'@export
 predictLearner.fcregr.arfima = function(.learner, .model, .newdata, ...){
-  se.fit = .learner$predict.type == "se"
+  se.fit = .learner$predict.type == "quantile"
   if (!se.fit){
     p = as.numeric(forecast::forecast(.model$learner.model, ...)$mean)
   } else {
@@ -62,8 +62,8 @@ predictLearner.fcregr.arfima = function(.learner, .model, .newdata, ...){
     pLower = pse$lower
     pUpper = pse$upper
     colnames(pMean)  = "point_forecast"
-    colnames(pLower) = paste0("lower_",colnames(pLower))
-    colnames(pUpper) = paste0("upper_",colnames(pUpper))
+    colnames(pLower) = paste0("lower_",pse$level)
+    colnames(pUpper) = paste0("upper_",pse$level)
     p = cbind(pMean,pLower,pUpper)
   }
   return(p)

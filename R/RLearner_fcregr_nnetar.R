@@ -1,6 +1,6 @@
 #'@export
 makeRLearner.fcregr.nnetar = function() {
-  makeRLearnerRegr(
+  makeRLearnerForecastRegr(
     cl = "fcregr.nnetar",
     package = "forecast",
     par.set = makeParamSet(
@@ -15,9 +15,9 @@ makeRLearner.fcregr.nnetar = function() {
       makeIntegerLearnerParam(id = "h", lower = 0L, default = 1L, when = "predict"),
       makeLogicalLearnerParam(id = "bootstrap", default = FALSE, tunable = FALSE, when = "predict"),
       makeUntypedLearnerParam(id = "level", default = c(80,95), when = "predict"),
-      makeIntegerLearnerParam(id = "npaths", default = 5000, when = "predict")
+      makeIntegerLearnerParam(id = "npaths", default = 1000, when = "predict")
       ),
-    properties = c("numerics","ts"),
+    properties = c("numerics", "ts", "quantile"),
     name = "Neural Network Time Series Forecasts",
     short.name = "nnetar",
     note = ""
@@ -32,17 +32,17 @@ trainLearner.fcregr.nnetar = function(.learner, .task, .subset, .weights = NULL,
 
 #'@export
 predictLearner.fcregr.nnetar = function(.learner, .model, .newdata, ...){
-  se.fit = .learner$predict.type == "se"
+  se.fit = .learner$predict.type == "quantile"
   if (!se.fit){
     p = as.numeric(forecast::forecast(.model$learner.model, ...)$mean)
   } else {
-    pse = forecast::forecast(.model$learner.model, ...)
+    pse = forecast::forecast(.model$learner.model, PI = TRUE, ...)
     pMean  = as.matrix(pse$mean)
     pLower = pse$lower
     pUpper = pse$upper
     colnames(pMean)  = "point_forecast"
-    colnames(pLower) = paste0("lower_",colnames(pLower))
-    colnames(pUpper) = paste0("upper_",colnames(pUpper))
+    colnames(pLower) = paste0("lower_",pse$level)
+    colnames(pUpper) = paste0("upper_",pse$level)
     p = cbind(pMean,pLower,pUpper)
   }
   return(p)

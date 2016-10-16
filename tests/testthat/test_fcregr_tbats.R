@@ -4,8 +4,8 @@ test_that("fcregr_tbats", {
 
   parset.list = list(
     list(),
-    list(),
-    list(use.damped.trend = TRUE),
+    list(use.box.cox = TRUE),
+    list(use.trend = FALSE, use.arma.errors = TRUE, seasonal.periods = FALSE),
     list(use.arma.errors = TRUE, use.box.cox = TRUE),
     list(use.arma.errors = TRUE, use.box.cox = TRUE, use.trend = TRUE)
   )

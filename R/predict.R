@@ -83,7 +83,7 @@ predict.WrappedModel = function(object, task, newdata, subset, ...) {
     if (is.list(truth))
       truth = data.frame(truth)
     #FIXME: Patchjob, need to find a way to identify that new data can be same as y.
-    if (!any(learner$package == "forecast") && !any(learner$properties == "ts"))
+    if (learner$type != "fcregr")
       newdata = newdata[, -t.col, drop = FALSE]
   } else {
     truth = NULL

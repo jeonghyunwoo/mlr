@@ -18,7 +18,7 @@ makeForecastRegrTask = function(id = deparse(substitute(data)), data, target,
       data[[target]] = as.double(data[[target]])
   }
 
-  task = makeSupervisedTask("regr", data, target, weights, blocking, fixup.data = fixup.data, check.data = check.data)
+  task = makeSupervisedTask("fcregr", data, target, weights, blocking, fixup.data = fixup.data, check.data = check.data)
 
   if (check.data) {
     assertNumeric(data[[target]], any.missing = FALSE, finite = TRUE, .var.name = target)
@@ -29,7 +29,7 @@ makeForecastRegrTask = function(id = deparse(substitute(data)), data, target,
 }
 
 makeTaskDesc.ForecastRegrTask = function(task, id, target, frequency) {
-  td = makeTaskDescInternal(task, "regr", id, target, time = TRUE)
+  td = makeTaskDescInternal(task, "fcregr", id, target, time = TRUE)
   td$dates = c(task$env$data$dates[1],task$env$data$dates[nrow(task$env$data)])
   if (missing(frequency))
     frequency = task$task.desc$frequency

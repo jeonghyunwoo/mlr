@@ -7,7 +7,7 @@
 createLagDiffFeatures(obj, lag = 0L, difference = 0L, difference.lag = 1L,
   cols = NULL, target = character(0L), seasonal.lag = 0L,
   seasonal.difference = 0L, seasonal.difference.lag = 1L, frequency = 1L,
-  na.pad = TRUE, return.nonlag = FALSE)
+  na.pad = TRUE, return.nonlag = TRUE)
 }
 \arguments{
 \item{obj}{[\code{data.frame} | \code{\link{Task}}]\cr

@@ -1,6 +1,6 @@
 #'@export
 makeRLearner.fcregr.garch = function() {
-  makeRLearnerRegr(
+  makeRLearnerForecastRegr(
     cl = "fcregr.garch",
     package = "rugarch",
     par.set = makeParamSet(
@@ -55,9 +55,10 @@ makeRLearner.fcregr.garch = function() {
       makeNumericLearnerParam("rec.init", lower = 1E-10, upper = Inf, special.vals = list('all')),
       # END: fit.control
       makeIntegerLearnerParam("n.ahead", lower = 1L, default = 10L, when = "predict"),
-      makeIntegerLearnerParam("n.roll", lower = 0L, default = 0L, when = "predict")
+      makeIntegerLearnerParam("n.roll", lower = 0L, default = 0L, when = "predict"),
+      makeUntypedLearnerParam("probs", default = c(.05, .95), when = "predict")
     ),
-    properties = c("numerics","ts"),
+    properties = c("numerics","ts", "quantile"),
     name = "Generalized AutoRegressive Conditional Heteroskedasticity",
     short.name = "garch",
     note = ""
@@ -107,7 +108,25 @@ trainLearner.fcregr.garch = function(.learner, .task, .subset, .weights = NULL, 
 
 #'@export
 predictLearner.fcregr.garch = function(.learner, .model, .newdata, ...){
-  garch_forecast = rugarch::ugarchforecast(.model$learner.model, ...)
-  as.numeric(garch_forecast@forecast$seriesFor)
-}
 
+  se.fit = .learner$predict.type == "quantile"
+  if (!se.fit){
+    garchForecast = rugarch::ugarchforecast(.model$learner.model, ...)
+    p = as.numeric(garchForecast@forecast$seriesFor)
+  } else {
+    garchForecast = rugarch::ugarchforecast(.model$learner.model, ...)
+    # FIXME: This is probably not good. Need to not care about if probs are created by user
+    if (is.null(.model$learner$par.vals$probs)) .model$learner$par.vals$probs = c(.05,.95)
+    garchQuantile = lapply(.model$learner$par.vals$probs, function(x) rugarch::quantile(garchForecast, x))
+    pMean  = as.matrix(garchForecast@forecast$seriesFor)
+    pQuantile = do.call(cbind, garchQuantile)
+    #pLower = as.numeric(garchQuantile[[1]])
+    #pUpper = as.numeric(garchQuantile[[2]])
+    colnames(pMean)  = "point_forecast"
+    #FIXME: Need to get names of quantiles
+    colnames(pQuantile) = paste0("quantile",.model$learner$par.vals$probs )#,colnames(pLower))
+    #colnames(pUpper) = paste0("quantile")#,colnames(pUpper))
+    p = cbind(pMean,pQuantile)
+  }
+  return(p)
+}

@@ -60,6 +60,8 @@ makePreprocWrapperLambert = function(learner, target.proc = FALSE, type = c("h",
     colnames(x) = nums
     data = data[, setdiff(cns, nums), drop = FALSE]
     data = cbind(data, x)
+    # FIXME: This only makes the data gaussian, but we want to be able to return the data to it's
+    ## original distribution
     return(data)
   }
 

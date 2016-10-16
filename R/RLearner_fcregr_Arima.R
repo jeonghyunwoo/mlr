@@ -1,6 +1,6 @@
 #'@export
 makeRLearner.fcregr.Arima = function() {
-  makeRLearnerRegr(
+  makeRLearnerForecastRegr(
     cl = "fcregr.Arima",
     package = "forecast",
     par.set = makeParamSet(
@@ -19,15 +19,15 @@ makeRLearner.fcregr.Arima = function() {
       makeDiscreteLearnerParam(id = "method", values = c("CSS-ML", "ML", "CSS"),
                                default = "CSS-ML", tunable = FALSE),
       # Make prediction parameters
-      makeNumericLearnerParam(id = "h", lower = 1, upper = Inf,
-                       default = 1, when = "predict"),
+      makeIntegerLearnerParam(id = "h", lower = 1, upper = 1000,
+                       default = 1, when = "predict", tunable = FALSE),
       makeLogicalLearnerParam(id = "biasadj", default = FALSE, tunable = TRUE, when = "predict"),
       makeLogicalLearnerParam(id = "bootstrap", default = FALSE, tunable = FALSE, when = "predict"),
       makeUntypedLearnerParam(id = "level", default = c(80,95), when = "predict"),
       makeIntegerLearnerParam(id = "npaths", default = 5000, when = "predict"),
       makeUntypedLearnerParam(id = "xreg", default = NULL)
     ),
-    properties = c("numerics","ts","se"),
+    properties = c("numerics","ts","quantile"),
     name = "AutoRegressive Integrated Moving Average",
     short.name = "Arima",
     note = ""
@@ -44,7 +44,7 @@ trainLearner.fcregr.Arima = function(.learner, .task, .subset, .weights = NULL, 
 
 #'@export
 predictLearner.fcregr.Arima = function(.learner, .model, .newdata, ...){
-  se.fit = .learner$predict.type == "se"
+  se.fit = .learner$predict.type == "quantile"
   if (!se.fit){
   p = as.numeric(forecast::forecast(.model$learner.model, ...)$mean)
   } else {
@@ -53,8 +53,8 @@ predictLearner.fcregr.Arima = function(.learner, .model, .newdata, ...){
   pLower = pse$lower
   pUpper = pse$upper
   colnames(pMean)  = "point_forecast"
-  colnames(pLower) = paste0("lower_",colnames(pLower))
-  colnames(pUpper) = paste0("upper_",colnames(pUpper))
+  colnames(pLower) = paste0("lower_",pse$level)
+  colnames(pUpper) = paste0("upper_",pse$level)
   p = cbind(pMean,pLower,pUpper)
   }
   return(p)

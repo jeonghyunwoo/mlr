@@ -11,6 +11,7 @@
 \alias{makeRLearnerClassif}
 \alias{makeRLearnerCluster}
 \alias{makeRLearnerCostSens}
+\alias{makeRLearnerForecastRegr}
 \alias{makeRLearnerMultilabel}
 \alias{makeRLearnerRegr}
 \alias{makeRLearnerSurv}
@@ -35,6 +36,9 @@ makeRLearnerCluster(cl, package, par.set, par.vals = list(),
   properties = character(0L), name = cl, short.name = cl, note = "")
 
 makeRLearnerCostSens(cl, package, par.set, par.vals = list(),
+  properties = character(0L), name = cl, short.name = cl, note = "")
+
+makeRLearnerForecastRegr(cl, package, par.set, par.vals = list(),
   properties = character(0L), name = cl, short.name = cl, note = "")
 }
 \arguments{
