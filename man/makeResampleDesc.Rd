@@ -37,7 +37,7 @@ Further parameters for strategies.\cr
   Here \code{iters = folds * reps}. Default is 10.}
 \item{horizon [\code{integer(1)}]}{Number of observations to forecast for \code{GrowthCV}
  and \code{FixedCV}.}
-\item{initialWindow [\code{integer(1)}]}{ Initial number of observations to start with
+\item{initial.window [\code{integer(1)}]}{ Initial number of observations to start with
  in \code{GrowthCV} and \code{FixedCV}.}
 \item{size [\code{integer(1)}]}{Number of observations in data set. Used for \code{GrowthCV}
  and \code{FixedCV}.}

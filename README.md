@@ -224,7 +224,7 @@ Several new models have been included from forecast:
 3. Exponential smoothing state space model (ets)
 4. Neural Network Autoregressive model (nnetar)
 
-The below code will run with the `Timeregr.task` we states above.
+The below code will run with the `Timeregr.task` we made above.
 ```{r}
 batMod = makeLearner("fcregr.bats", h = 10)
 m = train(batMod, Timeregr.task)
@@ -306,4 +306,21 @@ createLagDiffFeatures: ....
 DONE ====================================================================================================
 
 ```
+
+## Updating Models
+
+A new function `updateModel()` has been implimented that is a sort of frankenstein between `train()` and `predict()`.
+
+```{r}
+Timeregr.task = makeForecastRegrTask(id = "test", data = dat[1:190,], target = "arma_test",
+                                     frequency = 7L)
+arm = makeLearner("fcregr.Arima", order = c(2L,0L,1L), h = 10L, include.mean = FALSE)
+arm
+armMod = train(arm, Timeregr.task)
+updateArmMod = updateModel(armMod, Timeregr.task, newdata = dat[192:200,])
+updateArmMod
+# Model for learner.id=fcregr.Arima; learner.class=fcregr.Arima
+# Trained on: task.id = test; obs = 9; features = 1
+# Hyperparameters: order=2,0,1,h=10,include.mean=FALSE
+`
 
