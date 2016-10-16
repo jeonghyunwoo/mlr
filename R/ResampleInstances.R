@@ -40,8 +40,8 @@ instantiateResampleInstance.RepCVDesc = function(desc, size, task = NULL) {
 }
 
 instantiateResampleInstance.FixedCVDesc = function(desc, size, task = NULL) {
-  stops  = (seq(size))[desc$initialWindow:(size - desc$horizon)]
-  starts = stops - desc$initialWindow + 1
+  stops  = (seq(size))[desc$initial.window:(size - desc$horizon)]
+  starts = stops - desc$initial.window + 1
   train.inds = mapply(seq, starts, stops, SIMPLIFY = FALSE)
   test.inds  = mapply(seq, stops + 1, stops + desc$horizon, SIMPLIFY = FALSE)
 
@@ -59,8 +59,8 @@ instantiateResampleInstance.FixedCVDesc = function(desc, size, task = NULL) {
 }
 
 instantiateResampleInstance.GrowingCVDesc = function(desc, size, task = NULL) {
-  stops  = (seq(size))[desc$initialWindow:(size - desc$horizon)]
-  starts = 1:length(stops)
+  stops  = (seq(from = 1, to = size))[desc$initial.window:(size - desc$horizon)]
+  starts = rep(1, length(stops))
   train.inds = mapply(seq, starts, stops, SIMPLIFY = FALSE)
   test.inds  = mapply(seq, stops + 1, stops + desc$horizon, SIMPLIFY = FALSE)
   thin = function(x, skip = 2) {
@@ -70,7 +70,7 @@ instantiateResampleInstance.GrowingCVDesc = function(desc, size, task = NULL) {
   skip = desc$skip
   if(skip > 0) {
     train.inds = thin(train.inds, skip = skip+1)
-    test.inds = thin(test.inds, skip = skip+1)
+    test.inds  = thin(test.inds, skip = skip+1)
   }
 
   makeResampleInstanceInternal(desc, size, train.inds = train.inds, test.inds = test.inds )
