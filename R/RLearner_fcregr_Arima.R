@@ -61,7 +61,9 @@ predictLearner.fcregr.Arima = function(.learner, .model, .newdata, ...){
 }
 
 updateLearner.fcregr.Arima = function(.learner, .model, .newdata, .task, ...){
-  data = ts(.newdata, start = 1, frequency = .task$task.desc$frequency)
+  target = getTaskTargetNames(.task)
+  data = ts(.newdata[,target], start = 1, frequency = .task$task.desc$frequency)
+  updateData(.task, .newdata)
   forecast::Arima(y = data, model = .model$learner.model,...)
 }
 

@@ -322,5 +322,21 @@ updateArmMod
 # Model for learner.id=fcregr.Arima; learner.class=fcregr.Arima
 # Trained on: task.id = test; obs = 9; features = 1
 # Hyperparameters: order=2,0,1,h=10,include.mean=FALSE
-`
+```
 
+This works by making a call to `updateLearner.fcregr.Arima()` and updating the model and task data with `newdata`. `predict()` works as it would on a normal model.
+
+```{r}
+# predict(updateArmMod, newdata = as.data.frame(rep(NA,10)))
+# Prediction: 10 observations
+# predict.type: response
+# threshold: 
+# time: 4.29
+#    response
+# 1 1.3631309
+# 2 1.0226897
+# 3 0.7818986
+# 4 0.5996956
+# 5 0.4601914
+# 6 0.3531699
+# ... (10 rows, 1 cols)

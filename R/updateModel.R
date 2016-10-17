@@ -44,7 +44,7 @@ updateModel = function(object, task, newdata, subset, weights = NULL, ...){
     stop("No new data supplied")
 
   if (xts::is.xts(newdata))
-    newdata = as.data.frame(newdata)
+    newdata = data.frame(dates = index(newdata), newdata)
   assertDataFrame(newdata, min.rows = 1L)
   size = nrow(newdata)
   # FIXME: cleanup if cases
