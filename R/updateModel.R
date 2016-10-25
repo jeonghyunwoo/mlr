@@ -22,7 +22,7 @@
 #' @export
 #' @examples
 #' dat <- arima.sim(model = list(ar = c(.5,.2), ma = c(.4), order = c(2,0,1)), n = 100)
-#' times <- (Sys.time()+3) + days(1:100)
+#' times <- (as.POSIXlt("1992-01-14")) + lubridate::days(1:100)
 #' dat <- xts::xts(dat,order.by = times, frequency = 1L)
 #' colnames(dat) <- c("arma_test")
 #' Timeregr.task = makeForecastRegrTask(id = "test", data = dat,
@@ -30,7 +30,6 @@
 #' arm = makeLearner("fcregr.Arima", h = 1)
 #' trn = train(arm,Timeregr.task, subset = 1:99)
 #' armNew =updateModel(trn, Timeregr.task, newdata = dat[100,])
-
 updateModel = function(object, task, newdata, subset, weights = NULL, ...){
 
   #if (!xor(missing(task), missing(newdata)))
@@ -152,6 +151,43 @@ updateModel = function(object, task, newdata, subset, weights = NULL, ...){
 
 }
 
+#' Update an R learner with new data.
+#'
+#' Mainly for internal use. Update a model with new data.
+#' You have to implement this method if you want to add another learner to this package.
+#'
+#' Your implementation must adhere to the following:
+#' Updates to the observations in \code{.newdata} must be made based on the fitted
+#' model (\code{.model$learner.model}).
+#' All parameters in \code{...} must be passed to the underlying predict function.
+#'
+#' @param .learner [\code{\link{RLearner}}]\cr
+#'   Wrapped learner.
+#' @param .model [\code{\link{WrappedModel}}]\cr
+#'   Model produced by training.
+#' @param .newdata [\code{data.frame}]\cr
+#'   New data to predict. Does not include target column.
+#' @param ... [any]\cr
+#'   Additional parameters, which need to be passed to the underlying predict function.
+#' @return
+#' \itemize{
+#'   \item For classification: Either a factor with class labels for type
+#'     \dQuote{response} or, if the learner supports this, a matrix of class probabilities
+#'     for type \dQuote{prob}. In the latter case the columns must be named with the class
+#'     labels.
+#'   \item For regression or forecast regressions: Either a numeric vector for type \dQuote{response} or,
+#'     if the learner supports this, a matrix with two columns for type \dQuote{se}.
+#'     In the latter case the first column contains the estimated response (mean value)
+#'     and the second column the estimated standard errors.
+#'   \item For survival: Either a numeric vector with some sort of orderable risk
+#'     for type \dQuote{response} or, if supported, a numeric vector with time dependent
+#'     probabilities for type \dQuote{prob}.
+#'   \item For clustering: Either an integer with cluster IDs for type \dQuote{response}
+#'     or, if supported, a matrix of membership probabilities for type \dQuote{prob}.
+#'   \item For multilabel: A logical matrix that indicates predicted class labels for type
+#'     \dQuote{response} or, if supported, a matrix of class probabilities for type
+#'     \dQuote{prob}. The columns must be named with the class labels.
+#'  }
 #' @export
 updateLearner = function(.learner, .model, .newdata, ...) {
   lmod = getLearnerModel(.model)
@@ -163,7 +199,7 @@ updateLearner = function(.learner, .model, .newdata, ...) {
   }
 }
 
-#' @export
+
 updateLearner2 = function(.learner, .model, .newdata, ...) {
   # if we have that option enabled, set factor levels to complete levels from task
   if (.learner$fix.factors.prediction) {

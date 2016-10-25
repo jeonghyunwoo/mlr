@@ -4,6 +4,7 @@
 \alias{ClassifTask}
 \alias{ClusterTask}
 \alias{CostSensTask}
+\alias{ForecastRegrTask}
 \alias{MultilabelTask}
 \alias{RegrTask}
 \alias{SurvTask}
@@ -96,6 +97,11 @@ The columns correspond to classes and their names are the class labels
 (if unnamed we use y1 to yk as labels).
 Each entry (i,j) of the matrix specifies the cost of predicting class j
 for observation i.}
+
+\item{frequency}{[\code{Integer(1)}]\cr
+The seasonality of the data. A frequency of 7L for daily data means a weekly seasonality,
+52L is weekly data with a yearly seasonality, 365L is daily data with a yearly seasonality, etc.
+Default is 1L for no seasonality.}
 
 \item{censoring}{[\code{character(1)}]\cr
 Censoring type. Allowed choices are \dQuote{rcens} for right censored data (default),

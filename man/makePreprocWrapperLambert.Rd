@@ -4,16 +4,13 @@
 \alias{makePreprocWrapperLambert}
 \title{Gaussianize Numerical Data with a Lambert W Transform}
 \usage{
-makePreprocWrapperLambert(learner, target.proc = FALSE, type = c("h", "hh",
-  "s"), methods = c("IGMM", "MLE"), verbose = FALSE)
+makePreprocWrapperLambert(learner, type = c("h", "hh", "s"),
+  methods = c("IGMM", "MLE"), verbose = FALSE)
 }
 \arguments{
 \item{learner}{[\code{\link{Learner}} | \code{character(1)}]\cr
 The learner.
 If you pass a string the learner will be created via \code{\link{makeLearner}}.}
-
-\item{target.proc}{[\code{logical(1)}]\cr
-If TRUE, applies LambertW transform to target variable.}
 
 \item{type}{[\code{character(1)}] \cr
 What type of non-normality: symmetric heavy-tails "h" (default),

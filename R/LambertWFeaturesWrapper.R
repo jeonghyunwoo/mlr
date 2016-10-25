@@ -13,28 +13,25 @@
 #' "MLE" comes close to this. Default: "IGMM" since it is much faster than "MLE".
 #' @param verbose [\code{logical(1)}] \cr
 #' If TRUE, it prints out progress information in the console. Default: FALSE.
-#' @param target.proc [\code{logical(1)}]\cr
-#' If TRUE, applies LambertW transform to target variable.
 #' @export
 #' @family wrapper
 #' @template ret_learner
-makePreprocWrapperLambert = function(learner, target.proc = FALSE, type = c("h", "hh", "s"),
+makePreprocWrapperLambert = function(learner, type = c("h", "hh", "s"),
                                      methods = c("IGMM", "MLE"), verbose = FALSE) {
   type = match.arg(type)
   methods = match.arg(methods)
   learner = checkLearner(learner)
-  args = list(target.proc = target.proc, type = type, methods = methods, verbose = verbose)
+  args = list(type = type, methods = methods, verbose = verbose)
   rm(list = names(args))
 
   trainfun = function(data, target, args) {
+    # FIXME: This may also fail if they have one x variable, which should be okay
+    if (dim(data[2] == 1))
+      stop("Lambert W Transforms cannot be used with a single variable")
     cns = colnames(data)
-    if (args$target.proc){
-      nums = cns[sapply(data, is.numeric)]
-    } else {
-      nums = setdiff(cns[sapply(data, is.numeric)], target)
-    }
-    x = as.matrix(data[, nums, drop = FALSE])
+    nums = setdiff(cns[sapply(data, is.numeric)], target)
 
+    x = as.matrix(data[, nums, drop = FALSE])
     x = LambertW::Gaussianize(x, type = args$type, method = args$methods, verbose = args$verbose,
                               return.tau.mat = TRUE)
     control = args
@@ -48,11 +45,8 @@ makePreprocWrapperLambert = function(learner, target.proc = FALSE, type = c("h",
   }
   predictfun = function(data, target, args, control) {
     cns = colnames(data)
-    if (args$target.proc){
-      nums = cns[sapply(data, is.numeric)]
-    } else {
-      nums = setdiff(cns[sapply(data, is.numeric)], target)
-    }
+    nums = setdiff(cns[sapply(data, is.numeric)], target)
+
     x = as.matrix(data[, nums, drop = FALSE])
     x = LambertW::Gaussianize(x, type = control$type, method = control$methods,
                               verbose = control$verbose, tau.mat = control$tau.mat)
@@ -71,7 +65,6 @@ makePreprocWrapperLambert = function(learner, target.proc = FALSE, type = c("h",
     predict = predictfun,
     par.set = makeParamSet(
       makeDiscreteLearnerParam("type", values = c("h", "hh", "s"), default = "s"),
-      makeLogicalLearnerParam("target.proc", default = FALSE),
       makeDiscreteLearnerParam("methods", values = c("IGMM", "MLE"), default = "IGMM"),
       makeLogicalLearnerParam("verbose", default = FALSE, tunable = FALSE)
     ),

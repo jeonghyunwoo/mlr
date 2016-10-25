@@ -41,6 +41,9 @@ An integer vector of seasonal lag lengths, made as \code{seasonal.lag * frequenc
 \item{seasonal.difference}{[\code{integer}]\cr
 An integer of the seasonal order of difference, made as \code{seasonal.difference * frequency}}
 
+\item{seasonal.difference.lag}{[\code{integer}]\cr
+An integer denoting the period to seasonaly difference over}
+
 \item{frequency}{[\code{integer}]\cr
 An integer representing the periodicity in the time series. If frequency is declared in the task,
 the task frequency will be used.}
@@ -48,7 +51,7 @@ the task frequency will be used.}
 \item{na.pad}{[\code{logical}]\cr
 A logical to denote whether the data should be padded to the original size with NAs}
 
-\item{difference.lag}{[\code{logical}]\cr
+\item{return.nonlag}{[\code{logical}]\cr
 A logical to denote whether the original unlagged features should be returned}
 }
 \description{

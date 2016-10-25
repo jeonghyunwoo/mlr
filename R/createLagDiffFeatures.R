@@ -24,7 +24,9 @@
 #'   A logical to denote whether the data should be padded to the original size with NAs
 #' @param difference.lag [\code{integer}]\cr
 #'   An integer denoting the period to difference over
-#' @param difference.lag [\code{logical}]\cr
+#' @param seasonal.difference.lag [\code{integer}]\cr
+#'   An integer denoting the period to seasonaly difference over
+#' @param return.nonlag [\code{logical}]\cr
 #'   A logical to denote whether the original unlagged features should be returned
 #' @export
 #' @family eda_and_preprocess
